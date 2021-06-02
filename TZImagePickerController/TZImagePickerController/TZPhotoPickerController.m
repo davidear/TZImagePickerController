@@ -49,7 +49,8 @@
 @end
 
 static CGSize AssetGridThumbnailSize;
-static CGFloat itemMargin = 5;
+static CGFloat verticalSpace = 8;
+static CGFloat itemMargin = 3;
 
 @implementation TZPhotoPickerController
 
@@ -180,7 +181,7 @@ static CGFloat itemMargin = 5;
         _collectionView.dataSource = self;
         _collectionView.delegate = self;
         _collectionView.alwaysBounceHorizontal = NO;
-        _collectionView.contentInset = UIEdgeInsetsMake(itemMargin, itemMargin, itemMargin, itemMargin);
+        _collectionView.contentInset = UIEdgeInsetsMake(verticalSpace, 0, verticalSpace, 0);
         [self.view addSubview:_collectionView];
         [_collectionView registerClass:[TZAssetCell class] forCellWithReuseIdentifier:@"TZAssetCell"];
         [_collectionView registerClass:[TZAssetCameraCell class] forCellWithReuseIdentifier:@"TZAssetCameraCell"];
@@ -366,7 +367,7 @@ static CGFloat itemMargin = 5;
     }
     _collectionView.frame = CGRectMake(0, top, self.view.tz_width, collectionViewHeight);
     _noDataLabel.frame = _collectionView.bounds;
-    CGFloat itemWH = (self.view.tz_width - (self.columnNumber + 1) * itemMargin) / self.columnNumber;
+    CGFloat itemWH = (self.view.tz_width - (self.columnNumber - 1) * itemMargin) / self.columnNumber;
     _layout.itemSize = CGSizeMake(itemWH, itemWH);
     _layout.minimumInteritemSpacing = itemMargin;
     _layout.minimumLineSpacing = itemMargin;
