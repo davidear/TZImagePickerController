@@ -404,6 +404,10 @@
     // 设置首选语言 / Set preferred language
     // imagePickerVc.preferredLanguage = @"zh-Hans";
     
+    // xm自定义设置
+    imagePickerVc.photoDefImage = [UIImage imageNamed:@"xm_photoDefImage"];
+    imagePickerVc.photoSelImage = [UIImage imageNamed:@"xm_photoSelImage"];
+    imagePickerVc.cannotSelectLayerColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.5];
 #pragma mark - 到这里为止
     
     // You can get the photos by block, the same as by delegate.

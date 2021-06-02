@@ -13,6 +13,8 @@
 #import "TZImagePickerController.h"
 #import "TZProgressView.h"
 
+static CGFloat kBottomViewHeight = 17;
+
 @interface TZAssetCell ()
 @property (weak, nonatomic) UIImageView *imageView;       // The photo / 照片
 @property (weak, nonatomic) UIImageView *selectImageView;
@@ -287,7 +289,8 @@
         UIView *bottomView = [[UIView alloc] init];
         static NSInteger rgb = 0;
         bottomView.userInteractionEnabled = NO;
-        bottomView.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:0.8];
+//        bottomView.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:0.8];
+        bottomView.backgroundColor = [UIColor clearColor];
         [self.contentView addSubview:bottomView];
         _bottomView = bottomView;
     }
@@ -330,7 +333,7 @@
         UILabel *indexLabel = [[UILabel alloc] init];
         indexLabel.font = [UIFont systemFontOfSize:14];
         indexLabel.adjustsFontSizeToFitWidth = YES;
-        indexLabel.textColor = [UIColor whiteColor];
+        indexLabel.textColor = [UIColor blackColor];
         indexLabel.textAlignment = NSTextAlignmentCenter;
         [self.contentView addSubview:indexLabel];
         _indexLabel = indexLabel;
@@ -368,9 +371,35 @@
     CGFloat progressXY = (self.tz_width - progressWH) / 2;
     _progressView.frame = CGRectMake(progressXY, progressXY, progressWH, progressWH);
 
-    _bottomView.frame = CGRectMake(0, self.tz_height - 17, self.tz_width, 17);
-    _videoImgView.frame = CGRectMake(8, 0, 17, 17);
-    _timeLength.frame = CGRectMake(self.videoImgView.tz_right, 0, self.tz_width - self.videoImgView.tz_right - 5, 17);
+    _bottomView.frame = CGRectMake(0, self.tz_height - kBottomViewHeight, self.tz_width, kBottomViewHeight);
+//    UIColor *startColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0];
+//    UIColor *endColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:1];
+//    __block CAGradientLayer *gl = nil;
+//    [_bottomView.layer.sublayers enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(__kindof CALayer * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+//        if ([obj.name isEqualToString:@"gl"]) {
+//            gl = obj;
+//            *stop = YES;
+//        }
+//    }];
+////    CAGradientLayer *gl = objc_getAssociatedObject(_bottomView, @selector(addGradientLayerStartColor:endColor:horizontal:));
+//    if (!gl) {
+//        gl = [CAGradientLayer layer];
+//        gl.name = @"gl";
+////        objc_setAssociatedObject(self, @selector(addGradientLayerStartColor:endColor:horizontal:), gl, OBJC_ASSOCIATION_ASSIGN);
+//    }
+//    [gl removeFromSuperlayer];
+//    gl.frame = _bottomView.bounds;
+//    gl.startPoint = CGPointMake(0, 0);
+//    UIColor *startCo = startColor;
+//    UIColor *endCo = endColor;
+//    gl.locations = @[@(0.0),@(1.0f)];
+//    gl.endPoint = CGPointMake(0, 1);
+//    gl.colors = @[(__bridge id)startCo.CGColor,(__bridge id)endCo.CGColor];
+////    gl.locations = @[@(0.0),@(1.0f)];
+//    [_bottomView.layer insertSublayer:gl atIndex:(unsigned)(_bottomView.layer.sublayers.count - 1)];
+    
+    _videoImgView.frame = CGRectMake(8, 0, kBottomViewHeight, kBottomViewHeight);
+    _timeLength.frame = CGRectMake(self.videoImgView.tz_right, 0, self.tz_width - self.videoImgView.tz_right - 8, kBottomViewHeight);
     
     self.type = (NSInteger)self.model.type;
     self.showSelectBtn = self.showSelectBtn;
