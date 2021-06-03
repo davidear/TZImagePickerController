@@ -22,6 +22,7 @@
     
     UIView *_naviBar;
     UIButton *_backButton;
+    UILabel *_titleLabel;
     UIButton *_selectButton;
     UILabel *_indexLabel;
     
@@ -103,12 +104,18 @@
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     
     _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
-    _naviBar.backgroundColor = [UIColor colorWithRed:(34/255.0) green:(34/255.0)  blue:(34/255.0) alpha:0.7];
+    _naviBar.backgroundColor = [UIColor whiteColor];
     
     _backButton = [[UIButton alloc] initWithFrame:CGRectZero];
-    [_backButton setImage:[UIImage tz_imageNamedFromMyBundle:@"navi_back"] forState:UIControlStateNormal];
+    [_backButton setImage:[UIImage imageNamed:@"xm_navi_back"] forState:UIControlStateNormal];
     [_backButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [_backButton addTarget:self action:@selector(backButtonClick) forControlEvents:UIControlEventTouchUpInside];
+    
+    _titleLabel = [[UILabel alloc] init];
+    _titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightSemibold];
+    _titleLabel.textColor = [UIColor colorWithRed:32.0/255 green:32.0/255 blue:32.0/255 alpha:1];
+    _titleLabel.textAlignment = NSTextAlignmentCenter;
+    _titleLabel.text = @"预览";
     
     _selectButton = [[UIButton alloc] initWithFrame:CGRectZero];
     [_selectButton setImage:tzImagePickerVc.photoDefImage forState:UIControlStateNormal];
@@ -127,6 +134,7 @@
     
     [_naviBar addSubview:_selectButton];
     [_naviBar addSubview:_indexLabel];
+    [_naviBar addSubview:_titleLabel];
     [_naviBar addSubview:_backButton];
     [self.view addSubview:_naviBar];
 }
@@ -263,6 +271,7 @@
     CGFloat naviBarHeight = statusBarHeight + _tzImagePickerVc.navigationBar.tz_height;
     _naviBar.frame = CGRectMake(0, 0, self.view.tz_width, naviBarHeight);
     _backButton.frame = CGRectMake(10, 10 + statusBarHeightInterval, 44, 44);
+    _titleLabel.frame = CGRectMake((self.view.tz_width - 100) / 2, 10 + statusBarHeightInterval, 100, 44);
     _selectButton.frame = CGRectMake(self.view.tz_width - 56, 10 + statusBarHeightInterval, 44, 44);
     _indexLabel.frame = _selectButton.frame;
     
