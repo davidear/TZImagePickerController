@@ -597,6 +597,9 @@ static CGFloat itemMargin = 3;
     if (tzImagePickerVc.selectedModels.count >= tzImagePickerVc.maxImagesCount && tzImagePickerVc.showPhotoCannotSelectLayer && !model.isSelected) {
         cell.cannotSelectLayerButton.backgroundColor = tzImagePickerVc.cannotSelectLayerColor;
         cell.cannotSelectLayerButton.hidden = NO;
+    }else if (tzImagePickerVc.currentType == XMPhotoSelectedTypePublishImage && model.type == TZAssetModelMediaTypeVideo && tzImagePickerVc.showPhotoCannotSelectLayer && !model.isSelected) {
+        cell.cannotSelectLayerButton.backgroundColor = tzImagePickerVc.cannotSelectLayerColor;
+        cell.cannotSelectLayerButton.hidden = NO;
     } else {
         cell.cannotSelectLayerButton.hidden = YES;
     }

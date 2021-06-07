@@ -26,6 +26,15 @@
 #import "TZPhotoPreviewController.h"
 #import "TZPhotoPreviewCell.h"
 
+typedef NS_ENUM(NSInteger, XMPhotoSelectedType) {
+    XMPhotoSelectedTypePublishNone,// 发布，啥都没选
+    XMPhotoSelectedTypePublishImage,// 发布，图片类型
+    XMPhotoSelectedTypePublishVideo,// 发布，视频类型
+//    XMPhotoSelectedTypeEditImage,// 编辑，图片类型
+//    XMPhotoSelectedTypeEditVideo,// 编辑，视频类型
+//    XMPhotoSelectedTypeLiveImage,// 直播，图片类型
+};
+
 @class TZAlbumCell, TZAssetCell;
 @protocol TZImagePickerControllerDelegate;
 @interface TZImagePickerController : UINavigationController
@@ -176,6 +185,7 @@
 /// statusBar的样式，默认为UIStatusBarStyleLightContent
 @property (assign, nonatomic) UIStatusBarStyle statusBarStyle;
 
+@property (nonatomic, assign, readonly) XMPhotoSelectedType currentType;
 #pragma mark -
 /// Single selection mode, valid when maxImagesCount = 1
 /// 单选模式,maxImagesCount为1时才生效

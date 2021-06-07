@@ -241,6 +241,9 @@ static CGFloat kBottomViewHeight = 17;
     if (tzImagePickerVc.selectedModels.count >= tzImagePickerVc.maxImagesCount && tzImagePickerVc.showPhotoCannotSelectLayer && !self.model.isSelected) {
         self.cannotSelectLayerButton.backgroundColor = tzImagePickerVc.cannotSelectLayerColor;
         self.cannotSelectLayerButton.hidden = NO;
+    }else if (tzImagePickerVc.currentType == XMPhotoSelectedTypePublishImage && self.model.type == TZAssetModelMediaTypeVideo && tzImagePickerVc.showPhotoCannotSelectLayer && !self.model.isSelected) {
+        self.cannotSelectLayerButton.backgroundColor = tzImagePickerVc.cannotSelectLayerColor;
+        self.cannotSelectLayerButton.hidden = NO;
     } else {
         self.cannotSelectLayerButton.hidden = YES;
     }

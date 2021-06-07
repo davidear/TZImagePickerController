@@ -719,6 +719,17 @@
     return UIInterfaceOrientationMaskAll;
 }
 
+#pragma mark - xm
+- (XMPhotoSelectedType)currentType {
+    TZAssetModel *firstModel = self.selectedModels.firstObject;
+    if (firstModel == nil) {
+        return XMPhotoSelectedTypePublishNone;
+    }else if (firstModel.type == TZAssetModelMediaTypeVideo){
+        return XMPhotoSelectedTypePublishVideo;
+    }else {
+        return XMPhotoSelectedTypePublishImage;
+    }
+}
 @end
 
 
