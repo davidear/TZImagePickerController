@@ -35,6 +35,12 @@ typedef NS_ENUM(NSInteger, XMPhotoSelectedType) {
 //    XMPhotoSelectedTypeLiveImage,// 直播，图片类型
 };
 
+typedef NS_ENUM(NSUInteger, TZPhotoPickerForceHideType) {
+    TZPhotoPickerForceHideTypeNone, /// 不使用强制隐藏，最终受内部的角色权限控制
+    TZPhotoPickerForceHideTypeHide, /// 强制隐藏，忽略内部权限控制
+    TZPhotoPickerForceHideTypeShow, /// 强制不隐藏，忽略内部权限控制
+};
+
 @class TZAlbumCell, TZAssetCell;
 @protocol TZImagePickerControllerDelegate;
 @interface TZImagePickerController : UINavigationController
@@ -48,6 +54,10 @@ typedef NS_ENUM(NSInteger, XMPhotoSelectedType) {
 - (instancetype)initWithSelectedAssets:(NSMutableArray *)selectedAssets selectedPhotos:(NSMutableArray *)selectedPhotos index:(NSInteger)index;
 /// This init method for crop photo / 用这个初始化方法以裁剪图片
 - (instancetype)initCropTypeWithAsset:(PHAsset *)asset photo:(UIImage *)photo completion:(void (^)(UIImage *cropImage,PHAsset *asset))completion;
+
+#pragma mark - xm
+@property (nonatomic, assign) TZPhotoPickerForceHideType forceHideLiveTabType;
+@property(nonatomic, assign) BOOL hasBottomSegment;//是否有底部选择栏
 
 #pragma mark -
 /// Default is 9 / 默认最大可选9张图片

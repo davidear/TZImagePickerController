@@ -13,6 +13,9 @@
 #import "TZImagePickerController.h"
 #import "TZImageManager.h"
 #import "TZImageCropManager.h"
+#import "ImagePickBottomView.h"
+
+static const CGFloat doneHeight = 90;
 
 @interface TZPhotoPreviewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIScrollViewDelegate> {
     UICollectionView *_collectionView;
@@ -44,12 +47,16 @@
 @property (nonatomic, assign) double progress;
 @property (strong, nonatomic) UIAlertController *alertView;
 @property (nonatomic, strong) UIView *iCloudErrorView;
+
+//xm
+@property (strong, nonatomic) ImagePickBottomView *pickBottomView;
 @end
 
 @implementation TZPhotoPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.fd_prefersNavigationBarHidden = YES;
     [TZImageManager manager].shouldFixOrientation = YES;
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (!_didSetIsSelectOriginalPhoto) {
@@ -61,7 +68,8 @@
     }
     [self configCollectionView];
     [self configCustomNaviBar];
-    [self configBottomToolBar];
+//    [self configBottomToolBar];
+    [self configXMBottomView];
     self.view.clipsToBounds = YES;
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didChangeStatusBarOrientationNotification:) name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
 }
@@ -203,6 +211,24 @@
     }
 }
 
+- (void)configXMBottomView {
+    self.pickBottomView.chooseImageCountLabel.hidden = YES;
+    [self.pickBottomView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.leading.and.trailing.equalTo(self.view);
+        make.bottom.equalTo(self.view);
+        make.height.equalTo(@(55 + HNTV_BOTTOM_SPACE));
+    }];
+    self.pickBottomView.sureButtonHeight.constant = doneHeight;
+    TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    
+    NSInteger count = _tzImagePickerVc.selectedModels.count;
+    if (count == 0) {
+        [self.pickBottomView.sureButton setTitle:@"确定  " forState:UIControlStateNormal];
+    }else {
+        [self.pickBottomView.sureButton setTitle:[NSString stringWithFormat:@"确定(%zd) ",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
+    }
+}
+
 - (void)configCollectionView {
     _layout = [[UICollectionViewFlowLayout alloc] init];
     _layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
@@ -259,6 +285,14 @@
     }
 }
 
+- (ImagePickBottomView *)pickBottomView {
+    if (_pickBottomView == nil) {
+        _pickBottomView = [[NSBundle mainBundle] loadNibNamed:ImagePickBottomView.className owner:nil options:nil].firstObject;
+        [_pickBottomView.sureButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
+        [self.view addSubview:_pickBottomView];
+    }
+    return _pickBottomView;
+}
 #pragma mark - Layout
 
 - (void)viewDidLayoutSubviews {
@@ -460,6 +494,7 @@
     self.isHideNaviBar = !self.isHideNaviBar;
     _naviBar.hidden = self.isHideNaviBar;
     _toolBar.hidden = self.isHideNaviBar;
+    _pickBottomView.hidden = self.isHideNaviBar;
 }
 
 #pragma mark - UIScrollViewDelegate
@@ -575,6 +610,12 @@
         _indexLabel.hidden = NO;
     } else {
         _indexLabel.hidden = YES;
+    }
+    NSInteger count = _tzImagePickerVc.selectedModels.count;
+    if (count == 0) {
+        [self.pickBottomView.sureButton setTitle:@"确定  " forState:UIControlStateNormal];
+    }else {
+        [self.pickBottomView.sureButton setTitle:[NSString stringWithFormat:@"确定(%zd) ",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
     }
     _numberLabel.text = [NSString stringWithFormat:@"%zd",_tzImagePickerVc.selectedModels.count];
     _numberImageView.hidden = (_tzImagePickerVc.selectedModels.count <= 0 || _isHideNaviBar || _isCropImage);

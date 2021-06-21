@@ -14,6 +14,10 @@
 @property (nonatomic, assign) BOOL isFirstAppear;
 @property (nonatomic, assign) NSInteger columnNumber;
 @property (nonatomic, strong) TZAlbumModel *model;
+
+// xm
+@property (nonatomic, assign) BOOL naviRightButtonHidden;
+@property (nonatomic, assign) TZPhotoPickerForceHideType forceHideLiveTabType;
 @end
 
 

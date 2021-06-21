@@ -14,6 +14,7 @@
 #import "TZImagePickerController.h"
 #import "TZPhotoPreviewController.h"
 #import "TZVideoCropController.h"
+#import "ImagePickNavView.h"
 
 @interface TZVideoPlayerController () {
     AVPlayer *_player;
@@ -35,6 +36,8 @@
 // iCloud无法同步提示UI
 @property (nonatomic, strong) UIView *iCloudErrorView;
 
+// xm
+@property (strong, nonatomic) ImagePickNavView *pickNavView;
 @end
 
 #pragma clang diagnostic push
@@ -44,6 +47,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.fd_prefersNavigationBarHidden = YES;
     self.needShowStatusBar = ![UIApplication sharedApplication].statusBarHidden;
     self.view.backgroundColor = [UIColor blackColor];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
@@ -73,6 +77,7 @@
         BOOL iCloudSyncFailed = !photo && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
         self.iCloudErrorView.hidden = !iCloudSyncFailed;
         if (!isDegraded && photo) {
+            self.pickNavView.sureButton.enabled = YES;
             self->_cover = photo;
             self->_doneButton.enabled = YES;
             self->_editButton.enabled = YES;
@@ -83,10 +88,11 @@
             self->_player = [AVPlayer playerWithPlayerItem:playerItem];
             self->_playerLayer = [AVPlayerLayer playerLayerWithPlayer:self->_player];
             self->_playerLayer.frame = self.view.bounds;
-            [self.view.layer addSublayer:self->_playerLayer];
+//            [self.view.layer addSublayer:self->_playerLayer];
+            [self.view.layer insertSublayer:self->_playerLayer atIndex:0];
             [self addProgressObserver];
             [self configPlayButton];
-            [self configBottomToolBar];
+//            [self configBottomToolBar];
             [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self->_player.currentItem];
         });
     }];
@@ -172,6 +178,7 @@
     CGFloat statusBarHeight = isFullScreen ? [TZCommonTools tz_statusBarHeight] : 0;
     CGFloat statusBarAndNaviBarHeight = statusBarHeight + self.navigationController.navigationBar.tz_height;
     _playerLayer.frame = self.view.bounds;
+    self.pickNavView.frame = CGRectMake(0, 0, self.view.tz_width, MGECOM_NAVIGATION_HEIGHT);
     CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
     _toolBar.frame = CGRectMake(0, self.view.tz_height - toolBarHeight, self.view.tz_width, toolBarHeight);
     _doneButton.frame = CGRectMake(self.view.tz_width - 44 - 12, 0, 44, 44);
@@ -282,7 +289,7 @@
 - (void)pausePlayerAndShowNaviBar {
     [_player pause];
     _toolBar.hidden = NO;
-    [self.navigationController setNavigationBarHidden:NO];
+//    [self.navigationController setNavigationBarHidden:NO];
     [_playButton setImage:[UIImage tz_imageNamedFromMyBundle:@"MMVideoPreviewPlay"] forState:UIControlStateNormal];
     
     if (self.needShowStatusBar) {
@@ -313,6 +320,75 @@
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
+
+#pragma mark - xm
+- (ImagePickNavView *)pickNavView {
+    if (_pickNavView == nil) {
+        _pickNavView = [[NSBundle mainBundle] loadNibNamed:ImagePickNavView.className owner:nil options:nil].firstObject;
+        _pickNavView.backgroundColor = [UIColor whiteColor];
+        [_pickNavView.backButton addTarget:self action:@selector(backAction) forControlEvents:UIControlEventTouchUpInside];
+        _pickNavView.titleButton.enabled = NO;
+        [_pickNavView.titleButton setTitle:@"预览" forState:UIControlStateNormal];
+        [_pickNavView.titleButton setImage:nil forState:UIControlStateNormal];
+        _pickNavView.sureButton.hidden = NO;
+        [_pickNavView.sureButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
+        [self.view addSubview:_pickNavView];
+    }
+    return _pickNavView;
+}
+
+- (void)backAction {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+
+//- (void)doneButtonClick {
+//    [self pausePlayerAndShowNaviBar];
+//    if (self.navigationController) {
+//        [MBProgressHUD showMessage:nil];
+//        TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+//        PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+//        options.version = PHVideoRequestOptionsVersionCurrent;
+//        options.deliveryMode = PHVideoRequestOptionsDeliveryModeAutomatic;
+//        options.networkAccessAllowed = YES;
+//        [[PHImageManager defaultManager] requestAVAssetForVideo:_model.asset options:options resultHandler:^(AVAsset *asset, AVAudioMix *audioMix, NSDictionary *info) {
+//            if ([asset isKindOfClass:[AVURLAsset class]]) {
+//                AVURLAsset* urlAsset = (AVURLAsset*)asset;
+//                NSNumber *size;
+//                [urlAsset.URL getResourceValue:&size forKey:NSURLFileSizeKey error:nil];
+//                double orignSize = size.doubleValue/1000/1000;
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    [MBProgressHUD hideHUD];
+//                    if (imagePickerVc.maxVideoSize > 0 && orignSize > imagePickerVc.maxVideoSize) {
+//                        [MGToast showToast:[NSString stringWithFormat: @"视频过大，请上传%ldM以内的视频哦", imagePickerVc.maxVideoSize]];
+//                        return;
+//                    }
+//                    if (imagePickerVc.autoDismiss) {
+//                        [self dismissViewControllerAnimated:YES completion:^{
+//                            [self callDelegateMethod];
+//                        }];
+//                    } else {
+//                        [self callDelegateMethod];
+//                    }
+//                });
+//            }else {
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    [MBProgressHUD hideHUD];
+//                    NSError *error = [info objectForKey:PHImageErrorKey];
+//                    if (error.code == 256) {
+//                        [MBProgressHUD showToast:@"手机容量不足，无法导出视频"];
+//                    }else {
+//                        [MBProgressHUD showToast:@"无法导出视频"];
+//                    }
+//                });
+//            }
+//        }];
+//    } else {
+//        [self dismissViewControllerAnimated:YES completion:^{
+//            [self callDelegateMethod];
+//        }];
+//    }
+//}
 
 #pragma clang diagnostic pop
 

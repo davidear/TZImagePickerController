@@ -18,6 +18,14 @@
 #import "TZLocationManager.h"
 #import <MobileCoreServices/MobileCoreServices.h>
 #import "TZImageRequestOperation.h"
+#import "ImagePickNavView.h"
+#import "ImageAblumListView.h"
+#import "MGTVSliderSegmentedControl.h"
+#import "UIDevice+Authority.h"
+#import "XMViewControllerJump.h"
+#import "XMVideoRecordViewController.h"
+
+static CGFloat const kSegmentHeight = 66;
 
 @interface TZPhotoPickerController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate, PHPhotoLibraryChangeObserver> {
     NSMutableArray *_models;
@@ -46,6 +54,12 @@
 @property (nonatomic, strong) NSOperationQueue *operationQueue;
 @property (nonatomic, assign) BOOL isSavingMedia;
 @property (nonatomic, assign) BOOL isFetchingMedia;
+
+// xm
+@property (assign, nonatomic) BOOL takePicture; //拍照或者视频
+@property (strong, nonatomic) ImagePickNavView *pickNavView;
+@property (strong, nonatomic) ImageAblumListView *ablumListView;
+@property (strong, nonatomic) MGTVSliderSegmentedControl *segmentedControl;
 @end
 
 static CGSize AssetGridThumbnailSize;
@@ -110,6 +124,26 @@ static CGFloat itemMargin = 3;
     
     self.operationQueue = [[NSOperationQueue alloc] init];
     self.operationQueue.maxConcurrentOperationCount = 3;
+    
+    //xm
+    self.view.backgroundColor = [UIColor yy_colorWithHexString:@"#FAFAFA"];
+    self.fd_prefersNavigationBarHidden = YES;
+    self.fd_interactivePopDisabled = YES;
+    [self.pickNavView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.leading.and.trailing.equalTo(self.view);
+        make.top.equalTo(self.view).offset(HNTV_STATUS_HEIGHT);
+        make.height.equalTo(@(46));
+    }];
+    if (!tzImagePickerVc.hasBottomSegment) {
+        self.segmentedControl.superview.hidden = YES;
+    }else {
+        [self.segmentedControl.superview mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.leading.equalTo(self.view).offset(20);
+            make.trailing.equalTo(self.view).offset(-20);
+            make.bottom.equalTo(self.view).offset(-HNTV_BOTTOM_SPACE);
+            make.height.equalTo(@(kSegmentHeight));
+        }];
+    }
 }
 
 - (void)fetchAssetModels {
@@ -117,6 +151,7 @@ static CGFloat itemMargin = 3;
     if (_isFirstAppear && !_model.models.count) {
         [tzImagePickerVc showProgressHUD];
     }
+    [self.pickNavView.titleButton setTitle:kUnNilStr(self.model.name) forState:UIControlStateNormal];
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         CGFloat systemVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
         if (!tzImagePickerVc.sortAscendingByModificationDate && self->_isFirstAppear && self->_model.isCameraRoll) {
@@ -145,7 +180,7 @@ static CGFloat itemMargin = 3;
         [self checkSelectedModels];
         [self configCollectionView];
         self->_collectionView.hidden = YES;
-        [self configBottomToolBar];
+//        [self configBottomToolBar];// xm
         
         [self scrollCollectionViewToBottom];
     });
@@ -358,6 +393,7 @@ static CGFloat itemMargin = 3;
     BOOL isStatusBarHidden = [UIApplication sharedApplication].isStatusBarHidden;
     BOOL isFullScreen = self.view.tz_height == [UIScreen mainScreen].bounds.size.height;
     CGFloat toolBarHeight = 50 + [TZCommonTools tz_safeAreaInsets].bottom;
+    toolBarHeight = [TZCommonTools tz_safeAreaInsets].bottom + (tzImagePickerVc.hasBottomSegment ? kSegmentHeight : 0); // xm
     if (self.navigationController.navigationBar.isTranslucent) {
         top = naviBarHeight;
         if (!isStatusBarHidden && isFullScreen) top += [TZCommonTools tz_statusBarHeight];
@@ -377,39 +413,39 @@ static CGFloat itemMargin = 3;
         [_collectionView setContentOffset:CGPointMake(0, offsetY)];
     }
     
-    CGFloat toolBarTop = 0;
-    if (!self.navigationController.navigationBar.isHidden) {
-        toolBarTop = self.view.tz_height - toolBarHeight;
-    } else {
-        CGFloat navigationHeight = naviBarHeight + [TZCommonTools tz_statusBarHeight];
-        toolBarTop = self.view.tz_height - toolBarHeight - navigationHeight;
-    }
-    _bottomToolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
-    
-    CGFloat previewWidth = [tzImagePickerVc.previewBtnTitleStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:16]} context:nil].size.width + 2;
-    if (!tzImagePickerVc.allowPreview) {
-        previewWidth = 0.0;
-    }
-    _previewButton.frame = CGRectMake(10, 3, previewWidth, 44);
-    _previewButton.tz_width = !tzImagePickerVc.showSelectBtn ? 0 : previewWidth;
-    if (tzImagePickerVc.allowPickingOriginalPhoto) {
-        CGFloat fullImageWidth = [tzImagePickerVc.fullImageBtnTitleStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]} context:nil].size.width;
-        _originalPhotoButton.frame = CGRectMake(CGRectGetMaxX(_previewButton.frame), 0, fullImageWidth + 56, 50);
-        _originalPhotoLabel.frame = CGRectMake(fullImageWidth + 46, 0, 80, 50);
-    }
-    [_doneButton sizeToFit];
-    _doneButton.frame = CGRectMake(self.view.tz_width - _doneButton.tz_width - 12, 0, _doneButton.tz_width, 50);
-    _numberImageView.frame = CGRectMake(_doneButton.tz_left - 24 - 5, 13, 24, 24);
-    _numberLabel.frame = _numberImageView.frame;
-    _divideLine.frame = CGRectMake(0, 0, self.view.tz_width, 1);
+//    CGFloat toolBarTop = 0;
+//    if (!self.navigationController.navigationBar.isHidden) {
+//        toolBarTop = self.view.tz_height - toolBarHeight;
+//    } else {
+//        CGFloat navigationHeight = naviBarHeight + [TZCommonTools tz_statusBarHeight];
+//        toolBarTop = self.view.tz_height - toolBarHeight - navigationHeight;
+//    }
+//    _bottomToolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
+//
+//    CGFloat previewWidth = [tzImagePickerVc.previewBtnTitleStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:16]} context:nil].size.width + 2;
+//    if (!tzImagePickerVc.allowPreview) {
+//        previewWidth = 0.0;
+//    }
+//    _previewButton.frame = CGRectMake(10, 3, previewWidth, 44);
+//    _previewButton.tz_width = !tzImagePickerVc.showSelectBtn ? 0 : previewWidth;
+//    if (tzImagePickerVc.allowPickingOriginalPhoto) {
+//        CGFloat fullImageWidth = [tzImagePickerVc.fullImageBtnTitleStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]} context:nil].size.width;
+//        _originalPhotoButton.frame = CGRectMake(CGRectGetMaxX(_previewButton.frame), 0, fullImageWidth + 56, 50);
+//        _originalPhotoLabel.frame = CGRectMake(fullImageWidth + 46, 0, 80, 50);
+//    }
+//    [_doneButton sizeToFit];
+//    _doneButton.frame = CGRectMake(self.view.tz_width - _doneButton.tz_width - 12, 0, _doneButton.tz_width, 50);
+//    _numberImageView.frame = CGRectMake(_doneButton.tz_left - 24 - 5, 13, 24, 24);
+//    _numberLabel.frame = _numberImageView.frame;
+//    _divideLine.frame = CGRectMake(0, 0, self.view.tz_width, 1);
     
     [TZImageManager manager].columnNumber = [TZImageManager manager].columnNumber;
     [TZImageManager manager].photoWidth = tzImagePickerVc.photoWidth;
     [self.collectionView reloadData];
     
-    if (tzImagePickerVc.photoPickerPageDidLayoutSubviewsBlock) {
-        tzImagePickerVc.photoPickerPageDidLayoutSubviewsBlock(_collectionView, _bottomToolBar, _previewButton, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel, _divideLine);
-    }
+//    if (tzImagePickerVc.photoPickerPageDidLayoutSubviewsBlock) {
+//        tzImagePickerVc.photoPickerPageDidLayoutSubviewsBlock(_collectionView, _bottomToolBar, _previewButton, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel, _divideLine);
+//    }
 }
 
 #pragma mark - Notification
@@ -673,6 +709,7 @@ static CGFloat itemMargin = 3;
     // take a photo / 去拍照
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (((tzImagePickerVc.sortAscendingByModificationDate && indexPath.item >= _models.count) || (!tzImagePickerVc.sortAscendingByModificationDate && indexPath.item == 0)) && _showTakePhotoBtn)  {
+        self.takePicture = YES;
         [self takePhoto]; return;
     }
     // preview phote or video / 预览照片或视频
@@ -765,6 +802,7 @@ static CGFloat itemMargin = 3;
         }];
     }
     
+    if (self.takePicture) {
     UIImagePickerControllerSourceType sourceType = UIImagePickerControllerSourceTypeCamera;
     if ([UIImagePickerController isSourceTypeAvailable: sourceType]) {
         self.imagePickerVc.sourceType = sourceType;
@@ -784,26 +822,45 @@ static CGFloat itemMargin = 3;
     } else {
         NSLog(@"模拟器中无法打开照相机,请在真机中使用");
     }
+    }else {
+        /// 此处不使用系统的
+        NSLog(@"........xixixxixxi");
+        XMVideoRecordViewController *videoRecordViewController = [[XMVideoRecordViewController alloc] init];
+        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:videoRecordViewController];
+        nav.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:nav animated:YES completion:nil];
+//            [mediaTypes addObject:(NSString *)kUTTypeMovie];
+//            self.imagePickerVc.videoMaximumDuration = tzImagePickerVc.videoMaximumDuration;
+    }
 }
 
 - (void)refreshBottomToolBarStatus {
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     
-    _previewButton.enabled = tzImagePickerVc.selectedModels.count > 0;
-    _doneButton.enabled = tzImagePickerVc.selectedModels.count > 0 || tzImagePickerVc.alwaysEnableDoneBtn;
-    
-    _numberImageView.hidden = tzImagePickerVc.selectedModels.count <= 0;
-    _numberLabel.hidden = tzImagePickerVc.selectedModels.count <= 0;
-    _numberLabel.text = [NSString stringWithFormat:@"%zd",tzImagePickerVc.selectedModels.count];
-    
-    _originalPhotoButton.enabled = tzImagePickerVc.selectedModels.count > 0;
-    _originalPhotoButton.selected = (_isSelectOriginalPhoto && _originalPhotoButton.enabled);
-    _originalPhotoLabel.hidden = (!_originalPhotoButton.isSelected);
-    if (_isSelectOriginalPhoto) [self getSelectedPhotoBytes];
-    
-    if (tzImagePickerVc.photoPickerPageDidRefreshStateBlock) {
-        tzImagePickerVc.photoPickerPageDidRefreshStateBlock(_collectionView, _bottomToolBar, _previewButton, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel, _divideLine);;
+//    _previewButton.enabled = tzImagePickerVc.selectedModels.count > 0;
+//    _doneButton.enabled = tzImagePickerVc.selectedModels.count > 0 || tzImagePickerVc.alwaysEnableDoneBtn;
+//
+//    _numberImageView.hidden = tzImagePickerVc.selectedModels.count <= 0;
+//    _numberLabel.hidden = tzImagePickerVc.selectedModels.count <= 0;
+//    _numberLabel.text = [NSString stringWithFormat:@"%zd",tzImagePickerVc.selectedModels.count];
+//
+//    _originalPhotoButton.enabled = tzImagePickerVc.selectedModels.count > 0;
+//    _originalPhotoButton.selected = (_isSelectOriginalPhoto && _originalPhotoButton.enabled);
+//    _originalPhotoLabel.hidden = (!_originalPhotoButton.isSelected);
+    // xm
+    NSString *title = @"下一步";
+    if (tzImagePickerVc.selectedModels.count > 0) {
+        title = [NSString stringWithFormat:@"下一步(%zd)", tzImagePickerVc.selectedModels.count];
     }
+    self.pickNavView.sureButton.alpha = (tzImagePickerVc.selectedModels.count == 0 ? 0.6 : 1);
+    self.pickNavView.sureButton.userInteractionEnabled = (tzImagePickerVc.selectedModels.count != 0);
+    [self.pickNavView.sureButton setTitle:title forState:UIControlStateNormal];
+    
+//    if (_isSelectOriginalPhoto) [self getSelectedPhotoBytes];
+    
+//    if (tzImagePickerVc.photoPickerPageDidRefreshStateBlock) {
+//        tzImagePickerVc.photoPickerPageDidRefreshStateBlock(_collectionView, _bottomToolBar, _previewButton, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel, _divideLine);;
+//    }
 }
 
 - (void)pushPhotoPrevireViewController:(TZPhotoPreviewController *)photoPreviewVc {
@@ -1126,6 +1183,171 @@ static CGFloat itemMargin = 3;
         [indexPaths addObject:indexPath];
     }
     return indexPaths;
+}
+
+#pragma mark - xm
+
+- (void)initAblums {
+    if (![[TZImageManager manager] authorizationStatusAuthorized]) {
+        return;
+    }
+    if (self.isFirstAppear) {
+        TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+        //jtd!
+//        [MBProgressHUD showMessage:nil];
+    }
+
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+        [[TZImageManager manager] getAllAlbums:imagePickerVc.allowPickingVideo allowPickingImage:imagePickerVc.allowPickingImage needFetchAssets:!self.isFirstAppear completion:^(NSArray<TZAlbumModel *> *models) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                //jtd!
+//                [MBProgressHUD hideHUD];
+                if (self.isFirstAppear) {
+                    self.isFirstAppear = NO;
+                }
+                self.ablumListView.ablums = [NSMutableArray arrayWithArray:models];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self chooseAblumAction:self.pickNavView.titleButton];
+                });
+            });
+        }];
+    });
+}
+
+- (void)chooseAblumAction:(UIButton *)btn {
+    if (self.ablumListView.ablums.count == 0) {
+        [self initAblums];
+        return;
+    }
+    btn.selected = !btn.selected;
+    if (btn.selected) {
+        CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+        CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+        CGFloat navigationHeight = [TZCommonTools tz_isIPhoneX] ? 90 : 66;
+        self.ablumListView.frame = CGRectMake(0, navigationHeight, screenWidth, 0);
+        [self.view addSubview:self.ablumListView];
+        [UIView animateWithDuration:0.3 animations:^{
+            CGRect frame = self.ablumListView.frame;
+            frame.size.height = screenHeight - navigationHeight;
+            self.ablumListView.frame = frame;
+        } completion:nil];
+        return;
+    }
+    
+    [UIView animateWithDuration:0.3 animations:^{
+        CGRect frame = self.ablumListView.frame;
+        frame.size.height = 0;
+        self.ablumListView.frame = frame;
+    } completion:^(BOOL finished) {
+        [self.ablumListView removeFromSuperview];
+    }];
+}
+
+- (ImagePickNavView *)pickNavView {
+    if (_pickNavView == nil) {
+        _pickNavView = [[NSBundle mainBundle] loadNibNamed:NSStringFromClass([ImagePickNavView class] ) owner:nil options:nil].firstObject;
+        [self.view addSubview:_pickNavView];
+        [_pickNavView.backButton addTarget:self action:@selector(canncelAction) forControlEvents:UIControlEventTouchUpInside];
+        [_pickNavView.titleButton addTarget:self action:@selector(chooseAblumAction:) forControlEvents:UIControlEventTouchUpInside];
+        [_pickNavView.sureButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
+        _pickNavView.sureButton.alpha = 0.6;
+        _pickNavView.sureButton.userInteractionEnabled = NO;
+        _pickNavView.sureButton.hidden = self.naviRightButtonHidden;
+    }
+    return _pickNavView;
+}
+
+- (ImageAblumListView *)ablumListView {
+    if (_ablumListView == nil) {
+        _ablumListView = [[NSBundle mainBundle] loadNibNamed:NSStringFromClass([ImageAblumListView class]) owner:nil
+                                                     options:nil].firstObject;
+        __weak typeof(self) weakSelf = self;
+        _ablumListView.selectAblumBlock = ^(NSUInteger index) {
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            [strongSelf chooseAblumAction:weakSelf.pickNavView.titleButton];
+            strongSelf.model = [weakSelf.ablumListView.ablums objectAtIndex:index];
+            [strongSelf fetchAssetModels];
+        };
+    }
+    return _ablumListView;
+}
+
+- (void)canncelAction {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (MGTVSliderSegmentedControl *)segmentedControl {
+    if (_segmentedControl == nil) {
+        NSArray *titleArray = ![self shouldHideLiveTab] ? @[LocalizedString(@"直播"), LocalizedString(@"相册"), LocalizedString(@"拍视频"),LocalizedString(@"拍照")] : @[LocalizedString(@"相册"), LocalizedString(@"拍视频"),LocalizedString(@"拍照")];
+        CGFloat segmentWith = (HNTV_SCREEN_WIDTH - 2 * 20);
+        CGFloat segmentItemWith = (HNTV_SCREEN_WIDTH - 2 * 20) / titleArray.count;
+
+        _segmentedControl = [[MGTVSliderSegmentedControl alloc] initWithXFrame:CGRectMake(0, 0, segmentWith, 45) fixedItemWidth:@(segmentItemWith) widthFullScreen:NO itemTitles:titleArray tilteNormalColorName:@"#0D1C2899" tilteSelectColorName:@"#0D1C28" lineViewDefaultColorName:@"#FFD91D"];
+        [_segmentedControl setNormalColor:@"#808080" selectedColor:@"#202020"];
+        [_segmentedControl setNormalFont:UIFontRegular(15) selectedFont:UIFontSemibold(15)];
+        _segmentedControl.delegate = self;
+        _segmentedControl.animatedLineViewWidth = 20;
+        _segmentedControl.backgroundColor = [UIColor yy_colorWithHexString:@"#FAFAFA"];
+
+        UIView *segmentBgView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, HNTV_SCREEN_WIDTH, kSegmentHeight)];
+        segmentBgView.backgroundColor = [UIColor yy_colorWithHexString:@"#FAFAFA"];
+        [segmentBgView addSubview:_segmentedControl];
+        [self.view addSubview:segmentBgView];
+    }
+    return _segmentedControl;
+}
+
+- (BOOL)shouldHideLiveTab {
+//    return NO;
+    if(self.forceHideLiveTabType == TZPhotoPickerForceHideTypeNone){
+        NSInteger role = [UserInfoResponseAccesser getUserRole];
+        return  role < 1 ;
+    }else if (self.forceHideLiveTabType == TZPhotoPickerForceHideTypeHide) {
+        return YES;
+    }else  {
+        return NO;
+    }
+}
+
+#pragma mark - MGTVSliderSegmentedControlDelegate
+
+- (void)segmentedControl:(MGTVSliderSegmentedControl *)segmentedControl didSelectItemAtIndex:(NSInteger)selectedIndex fromItemIndex:(NSInteger)fromIndex {
+    [self.segmentedControl sliderSegmentDidEndMoveToIndex:selectedIndex];
+
+    NSInteger offset = [self shouldHideLiveTab] ? 0 : 1;
+    if (selectedIndex == -1 + offset) {//直播
+        if ([UserInfoResponseAccesser getLiveLicense].length == 0 || [UserInfoResponseAccesser getLiveKey].length == 0) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"XMRefreshLiveLicenseNotification" object:nil];
+            return;
+        }
+        [[UIDevice currentDevice] judgeAuthority:DeviceAuthorizeTypeVideo | DeviceAuthorizeTypeAudio success:^{
+            [XMViewControllerJump jumpLiveController:[UserInfoResponseAccesser getUUID] type:XMLivePlayType_preView];
+        }];
+    }else if (selectedIndex == 1 + offset) {// 拍视频
+        [[UIDevice currentDevice] judgeAuthority:DeviceAuthorizeTypeVideo | DeviceAuthorizeTypeAudio success:^{
+            self.takePicture = NO;
+            TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+//            imagePickerVc.cameraAutoDismiss = NO;
+            [self takePhoto];
+        }];
+    }else if (selectedIndex == 2 + offset) {//拍照
+        [[UIDevice currentDevice] judgeAuthority:DeviceAuthorizeTypeVideo success:^{
+            self.takePicture = YES;
+            TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+//            imagePickerVc.cameraAutoDismiss = NO;
+            [self takePhoto];
+        }];
+    }
+}
+
+#pragma mark - report
+- (NSString *)reportPageName {
+    TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    if (tzImagePickerVc.hasBottomSegment) {
+        return @"creative";
+    }
+    return nil;
 }
 #pragma clang diagnostic pop
 
